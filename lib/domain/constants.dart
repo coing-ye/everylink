@@ -1,0 +1,1 @@
+const String kUncategorized = '미지정';
