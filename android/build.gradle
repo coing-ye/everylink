@@ -11,35 +11,47 @@ rootProject.buildDir = "../build"
 
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
-}
 
-// ✅ afterEvaluate 쓰지 말고, 플러그인 감지해서 즉시 설정
-subprojects { proj ->
-    // Android 애플리케이션/라이브러리 플러그인에 공통 적용
-    proj.pluginManager.withPlugin("com.android.application") {
-        proj.extensions.configure(com.android.build.gradle.AppExtension) { android ->
-            android.compileOptions {
-                sourceCompatibility JavaVersion.VERSION_17
-                targetCompatibility JavaVersion.VERSION_17
-            }
-        }
-    }
-    proj.pluginManager.withPlugin("com.android.library") {
-        proj.extensions.configure(com.android.build.gradle.LibraryExtension) { android ->
-            android.compileOptions {
-                sourceCompatibility JavaVersion.VERSION_17
-                targetCompatibility JavaVersion.VERSION_17
+    // ✅ Java 17 toolchain 강제 적용
+    plugins.withType(JavaPlugin) {
+        extensions.configure(JavaPluginExtension) { java ->
+            java.toolchain {
+                languageVersion = JavaLanguageVersion.of(17)
             }
         }
     }
 
-    // Kotlin 컴파일 타깃 통일 (17)
+    // ✅ 모든 Java 컴파일 task에 JVM 17 설정
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = '17'
+        targetCompatibility = '17'
+    }
+
+    // ✅ Kotlin 컴파일 타깃 통일 (17)
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
             jvmTarget = "17"
+        }
+    }
+}
+
+subprojects {
+    // ✅ 플러그인이 적용된 후 설정
+    plugins.withId("com.android.application") {
+        extensions.configure(com.android.build.gradle.AppExtension) { android ->
+            android.compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+        }
+    }
+
+    plugins.withId("com.android.library") {
+        extensions.configure(com.android.build.gradle.LibraryExtension) { android ->
+            android.compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
         }
     }
 }

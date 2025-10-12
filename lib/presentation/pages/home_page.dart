@@ -10,6 +10,8 @@ import 'package:everylink/domain/models.dart';
 import 'package:everylink/domain/constants.dart'; // kUncategorized
 import 'package:everylink/domain/services/normalize.dart'; // normalizeUrl, parseCategoriesInput
 import 'package:everylink/domain/services/metadata_service.dart';
+import 'package:everylink/domain/services/ad_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'package:everylink/data/local_db.dart';
 import 'package:everylink/data/repositories/link_repository.dart';
@@ -19,17 +21,19 @@ import 'package:everylink/presentation/sheets/add_link_sheet.dart';
 import 'package:everylink/presentation/widgets/link_tile.dart';
 import 'package:everylink/presentation/pages/category_manager_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:everylink/app/app.dart';
+import 'package:everylink/app/theme_notifier.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   // ─────────────────────────────
   // Services / State
   // ─────────────────────────────
@@ -53,6 +57,11 @@ class _HomePageState extends State<HomePage> {
   // 부팅 게이트
   bool _booting = true;
 
+  // 광고
+  final _adService = AdService();
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +69,7 @@ class _HomePageState extends State<HomePage> {
     repo = LinkRepository(db);
 
     _bootstrap(); // 부팅 루틴
+    _loadBannerAd(); // 배너 광고 로드
 
     _searchCtrl.addListener(_applyFilter);
 
@@ -86,8 +96,26 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _mediaShareSub?.cancel();
     _searchCtrl.dispose();
+    _bannerAd?.dispose();
     db.close();
     super.dispose();
+  }
+
+  // ─────────────────────────────
+  // 광고 로드
+  // ─────────────────────────────
+  void _loadBannerAd() {
+    _bannerAd = _adService.createBannerAd(
+      onAdLoaded: () {
+        if (!mounted) return;
+        setState(() => _isBannerAdLoaded = true);
+      },
+      onAdFailedToLoad: (error) {
+        // 광고 로드 실패시 로그 출력 (선택사항)
+        debugPrint('Banner ad failed to load: $error');
+      },
+    );
+    _bannerAd?.load();
   }
 
   // ─────────────────────────────
@@ -343,6 +371,15 @@ class _HomePageState extends State<HomePage> {
   // ─────────────────────────────
   // UI helpers
   // ─────────────────────────────
+  IconData _getThemeIcon() {
+    final themeMode = ref.watch(themeModeProvider);
+    return switch (themeMode) {
+      ThemeMode.system => Icons.brightness_auto_rounded,
+      ThemeMode.light => Icons.light_mode_rounded,
+      ThemeMode.dark => Icons.dark_mode_rounded,
+    };
+  }
+
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
@@ -466,6 +503,13 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   actions: [
+                    IconButton(
+                      tooltip: '테마 변경',
+                      icon: Icon(_getThemeIcon()),
+                      onPressed: () async {
+                        await ref.read(themeModeProvider.notifier).toggleTheme();
+                      },
+                    ),
                     IconButton(
                       tooltip: '카테고리 관리',
                       icon: const Icon(Icons.tune_rounded),
@@ -624,6 +668,15 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.add_rounded),
             label: const Text('추가'),
           ),
+
+          // 하단 배너 광고
+          bottomNavigationBar: _isBannerAdLoaded && _bannerAd != null
+              ? Container(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  height: _bannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd!),
+                )
+              : null,
         ),
       ),
     );
