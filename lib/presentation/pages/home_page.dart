@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Clipboard
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:url_launcher/url_launcher.dart'; // launchUrl, LaunchMode
+import 'package:share_plus/share_plus.dart';
 
 import 'package:everylink/domain/models.dart';
 import 'package:everylink/domain/constants.dart'; // kUncategorized
@@ -408,6 +409,18 @@ class _HomePageState extends ConsumerState<HomePage> {
               onTap: () async {
                 Navigator.pop(ctx);
                 await _openUrlExternal(it.url);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_rounded),
+              title: const Text('공유'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final title = it.title ?? it.url;
+                await Share.share(
+                  it.url,
+                  subject: title,
+                );
               },
             ),
             ListTile(
