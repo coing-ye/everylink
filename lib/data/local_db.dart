@@ -268,6 +268,27 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ------------------------------------------------------------
+  // Helper methods
+  // ------------------------------------------------------------
+
+  /// DateTime 파싱 헬퍼 (중복 제거)
+  DateTime _parseCreatedAt(dynamic rawCreated) {
+    if (rawCreated is int) {
+      if (rawCreated > 1000000000000) {
+        return DateTime.fromMillisecondsSinceEpoch(rawCreated);
+      } else {
+        return DateTime.fromMillisecondsSinceEpoch(rawCreated * 1000);
+      }
+    } else if (rawCreated is String) {
+      return DateTime.tryParse(rawCreated) ?? DateTime.now();
+    } else if (rawCreated is DateTime) {
+      return rawCreated;
+    } else {
+      return DateTime.now();
+    }
+  }
+
+  // ------------------------------------------------------------
   // (이전) 일반 조회/검색/추천 — 필요시 유지
   // ------------------------------------------------------------
 
@@ -300,28 +321,12 @@ class AppDatabase extends _$AppDatabase {
           ? <String>[]
           : catStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
 
-      final rawCreated = data['createdAt'];
-      DateTime createdAt;
-      if (rawCreated is int) {
-        if (rawCreated > 1000000000000) {
-          createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreated);
-        } else {
-          createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreated * 1000);
-        }
-      } else if (rawCreated is String) {
-        createdAt = DateTime.tryParse(rawCreated) ?? DateTime.now();
-      } else if (rawCreated is DateTime) {
-        createdAt = rawCreated;
-      } else {
-        createdAt = DateTime.now();
-      }
-
       return UrlItem(
         id: (data['id'] as num).toInt(),
         url: data['url'] as String,
         title: data['title'] as String?,
         memo: data['memo'] as String?,
-        createdAt: createdAt,
+        createdAt: _parseCreatedAt(data['createdAt']),
         categories: catList,
       );
     }).toList();
@@ -430,28 +435,12 @@ class AppDatabase extends _$AppDatabase {
           ? <String>[]
           : catStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
 
-      final rawCreated = data['createdAt'];
-      DateTime createdAt;
-      if (rawCreated is int) {
-        if (rawCreated > 1000000000000) {
-          createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreated);
-        } else {
-          createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreated * 1000);
-        }
-      } else if (rawCreated is String) {
-        createdAt = DateTime.tryParse(rawCreated) ?? DateTime.now();
-      } else if (rawCreated is DateTime) {
-        createdAt = rawCreated;
-      } else {
-        createdAt = DateTime.now();
-      }
-
       return UrlItem(
         id: (data['id'] as num).toInt(),
         url: data['url'] as String,
         title: data['title'] as String?,
         memo: data['memo'] as String?,
-        createdAt: createdAt,
+        createdAt: _parseCreatedAt(data['createdAt']),
         categories: catList,
       );
     }).toList();
