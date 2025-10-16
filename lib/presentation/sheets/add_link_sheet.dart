@@ -1,7 +1,7 @@
 // lib/presentation/sheets/add_link_sheet.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../domain/services/normalize.dart'; // normalizeUrl, parseCategoriesInput
+import '../../domain/services/normalize.dart'; // normalizeUrl, parseCategoriesInput, extractUrl
 
 const kBrandMint = Color(0xFF16BEA8);
 
@@ -145,24 +145,22 @@ class _AddLinkSheetState extends State<_AddLinkSheet> {
     });
   }
 
-  // 외부 공유로 진입 시, 필요하면 이 헬퍼로 즉시 반영 가능
-  void _handleIncomingSharedUrl(String shared) {
-    urlCtrl.text = shared;
-    _recomputeCanSave(); // 즉시 활성화 반영
-  }
-
   void _save() {
-    final url  = urlCtrl.text.trim();
+    final urlInput = urlCtrl.text.trim();
     final tRaw = titleCtrl.text.trim();
     final mRaw = memoCtrl.text.trim();
 
-    if (url.isEmpty) {
+    if (urlInput.isEmpty) {
       // URL은 필수값: 비어있으면 저장하지 않고 안내
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('URL을 입력해 주세요')),
       );
       return;
     }
+
+    // URL 추출: "구글 https://google.com 테스트" -> "https://google.com"
+    final extracted = extractUrl(urlInput);
+    final url = extracted ?? urlInput; // URL이 없으면 원본 사용
 
     // 남은 입력 반영(쉼표 분리 입력)
     final pending = parseCategoriesInput(catCtrl.text);

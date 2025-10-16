@@ -203,11 +203,28 @@ class _HomePageState extends ConsumerState<HomePage> {
       final p = f.path.trim();
 
       if (mime.startsWith('text/') || f.type == SharedMediaType.text) {
-        final reg = RegExp(r'(https?:\/\/[^\s]+)', caseSensitive: false);
-        final m = reg.firstMatch(p);
-        if (m != null) return m.group(0);
+        // 개선된 URL 추출 정규식
+        // - http:// 또는 https:// 스킴을 정확히 매칭
+        // - 스킴 뒤의 유효한 URL 문자만 추출
+        // - 단어 경계(\b)를 사용하여 앞뒤 텍스트와 분리
+        final reg = RegExp(
+          r'\b(https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&()*+,;=%]+)',
+          caseSensitive: false,
+        );
+        final match = reg.firstMatch(p);
+        if (match != null) {
+          var url = match.group(1) ?? '';
+          // URL 끝의 불필요한 문장부호 제거
+          url = url.replaceAll(RegExp(r'[.,;:!?\)\]]+$'), '');
+          if (url.isNotEmpty) return url;
+        }
       }
-      if (p.startsWith('http://') || p.startsWith('https://')) return p;
+      if (p.startsWith('http://') || p.startsWith('https://')) {
+        // 직접 URL로 시작하는 경우에도 끝 문장부호 정리
+        var url = p;
+        url = url.replaceAll(RegExp(r'[.,;:!?\)\]]+$'), '');
+        return url;
+      }
     }
     return null;
   }
